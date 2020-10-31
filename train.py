@@ -48,7 +48,38 @@ def get_user_input():
     
     args = parser.parse_args()
     return args
+# Build the Model
+def build_model(args):
+    if args.arch == 'vgg16':
+        model = models.vgg16(pretrained=True)
+        #print(model.classifier[0].in_features)
+        args.input_size = 25088
+    elif args.arch == 'alexnet': 
+        model = models.alexnet(pretrained=True)
+        #print(model.classifier)
+        args.input_size = 9216
+    elif args.arch == 'resnet18':
+        model = models.alexnet(pretrained=True)
+        #print(model.classifier[1].in_features)
+        args.input_size = 9216
+    else:
+        model = models.densenet161(pretrained=True)
+        #print(model.classifier)
+        args.input_size = 2208
 
+    for param in model.parameters():
+        param.requires_grad=False
+        
+    model.classifier = nn.Sequential(nn.Linear(args.input_size, args.hidden_layers[0]),
+                              nn.ReLU(),
+                              nn.Dropout(args.dropout),
+                              nn.Linear(args.hidden_layers[0], args.hidden_layers[1]),
+                              nn.ReLU(),
+                              nn.Dropout(args.dropout),
+                              nn.Linear(args.hidden_layers[1], 102),
+                              nn.LogSoftmax(dim = 1))
+   
+    return model
 
  # Get Data loader and Data Set   
 def get_dataset_and_loader(data_dir, model):
@@ -91,43 +122,7 @@ def get_dataset_and_loader(data_dir, model):
 
     return loaders
 
-
-# Build the Model
-def build_model(args):
-    if args.arch == 'vgg16':
-        model = models.vgg16(pretrained=True)
-        #print(model.classifier[0].in_features)
-        args.input_size = 25088
-    elif args.arch == 'alexnet': 
-        model = models.alexnet(pretrained=True)
-        #print(model.classifier)
-        args.input_size = 9216
-    elif args.arch == 'resnet18':
-        model = models.alexnet(pretrained=True)
-        #print(model.classifier[1].in_features)
-        args.input_size = 9216
-    else:
-        model = models.densenet161(pretrained=True)
-        #print(model.classifier)
-        args.input_size = 2208
-
-    for param in model.parameters():
-        param.requires_grad=False
-        
-    model.classifier = nn.Sequential(nn.Linear(args.input_size, args.hidden_layers[0]),
-                              nn.ReLU(),
-                              nn.Dropout(args.dropout),
-                              nn.Linear(args.hidden_layers[0], args.hidden_layers[1]),
-                              nn.ReLU(),
-                              nn.Dropout(args.dropout),
-                              nn.Linear(args.hidden_layers[1], 102),
-                              nn.LogSoftmax(dim = 1))
-   
-    return model
-
-
 # Train the Model
-#def train(model, args, loaders, optimizer, criterion):
 def train(args):
     model = build_model(args)
     loaders = get_dataset_and_loader(args.data_dir, model)
